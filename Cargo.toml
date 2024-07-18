@@ -1,0 +1,4 @@
+[workspace]
+members = [
+  "lb-core","yml-parser","lb-app"
+]
