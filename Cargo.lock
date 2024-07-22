@@ -13,6 +13,9 @@ dependencies = [
 [[package]]
 name = "lb-core"
 version = "0.1.0"
+dependencies = [
+ "yml-parser",
+]
 
 [[package]]
 name = "yml-parser"

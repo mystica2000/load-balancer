@@ -1,5 +1,6 @@
 use std::{env, fs::{File}, io};
 
+use lb_core::initialize_load_balancer;
 use yml_parser::{yml_parser};
 
 fn main() -> io::Result<()> {
@@ -16,6 +17,8 @@ fn main() -> io::Result<()> {
 
        let load_balancer_config = yml_parser(file).map_err(|e| e);
        println!("{:?}",load_balancer_config);
+
+       initialize_load_balancer(load_balancer_config.unwrap());
        Ok(())
       },
       Err(e) => {

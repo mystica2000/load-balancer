@@ -30,14 +30,14 @@ impl Listeners {
 }
 
 #[derive(Debug)]
-pub struct LoadBalancer {
+pub struct LoadBalancerConfig {
   name: String,
   lb_type: String,
   listeners: Vec<Listeners>,
   backend_servers: Vec<Server>,
   algorithm: String
 }
-impl LoadBalancer {
+impl LoadBalancerConfig {
   pub fn new() -> Self{
     Self {
       name: String::new(),
@@ -134,9 +134,9 @@ fn is_indented(str: &str) {
   true;
 }
 
-pub(crate) fn parse_to_object(processed_buffer: &Vec<String>) -> Result<LoadBalancer, ()> {
+pub(crate) fn parse_to_object(processed_buffer: &Vec<String>) -> Result<LoadBalancerConfig, ()> {
 
-  let mut load_balancer: LoadBalancer = LoadBalancer::new();
+  let mut load_balancer: LoadBalancerConfig = LoadBalancerConfig::new();
 
   let key_indentation: Vec<u8> = count_indentation(&processed_buffer);
   let mut current_index = 0;
@@ -336,3 +336,18 @@ mod tests {
 }
 
 // check with identation for - nested etc
+
+
+
+// TODO
+// - Proper Error Handling
+//     - Meaningful error
+//     - Validation Check
+//          - algorithms -> should be of ["round-robin", "least-connections"], else error
+//          - port -> 0 - 65,536
+//          - ip -> ip4 only
+//          - type -> application, transport
+//          - protocol -> http1.1,http2,tcp
+// - write tests
+// - include comments
+// - refactor

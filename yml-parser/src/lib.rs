@@ -1,23 +1,10 @@
 use std::{fs::File, io::{self, BufRead}};
 
-use parser::LoadBalancer;
+use parser::LoadBalancerConfig;
 mod preprocess;
-mod parser;
+pub mod parser;
 
-
-// enum LoadBalancerType {
-//   Application = "application",
-//   Network = "network"
-// first if # is present, then get the index and skip after
-// match it with keyword ":" before.. then you will know
-// the following have to be one of the name, type,listeners,algorithms
-
-// if listeners then next have to be protocol, port
-// if backend servers, then next have to be name, ip, port as array tada over!
-// }
-
-
-pub fn yml_parser(file: File) -> Result<LoadBalancer, io::Error> {
+pub fn yml_parser(file: File) -> Result<LoadBalancerConfig, io::Error> {
 
 
   let reader = io::BufReader::new(file);

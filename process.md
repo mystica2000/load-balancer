@@ -1,9 +1,12 @@
 # Rust Load Balancer
 
-[] YAML Parser
+[x] YAML Parser
 [] LB INITIALIZE
 [] LB ALGORITHMS [ROUND ROBIN, LEAKY BUCKET ETC]
-[] MORE!!!
+[] HEALTH CHECK
+[] LB HTTP1/2/TCP
+[] STICKY
+[] MORE!!! (MIGHT BE CACHEE - IDK)
 [] YAML OR CMD LINE ARGUMENTS (EXTENSION)
 
 ### Day 1
@@ -22,6 +25,15 @@
 ### Day 2
 
 - created preprocess_by_line() and added tests in parser.rs
+
+### Day 3
+
+- yaml parser
+
+### Day 4
+
+- yaml parser (completed)
+- left notes to cover for error and comments and tests yada (boring tasks)
 
 ### Instructions
 
