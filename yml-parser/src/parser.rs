@@ -1,122 +1,338 @@
-pub(crate) fn preprocess_by_line(line: &str) -> Result<String, &'static str> {
-  let mut result = Vec::new();
-  let mut in_quotes: bool = false;
-  let mut chars = line.chars().peekable();
-  let mut prev_char = ' ';
-  let mut count_colon = 0;
-  let mut index = 0;
 
-  while let Some(c) = chars.next() {
-    match c {
-      '"' => handle_quote(&mut result, &mut in_quotes, &mut chars, prev_char, index, &line)?,
-      ':' => handle_colon(&mut result, &mut in_quotes, &mut count_colon)?,
-      '#' => {
-        if !handle_comment(in_quotes, prev_char) {
-          break;
-        }
-        result.push(c);
-      }
+#[derive(Debug)]
+struct Server {
+  name: String,
+  ip: String,
+  port: u16 // for port 0-65,535
+}
+impl Server {
+  pub fn new() -> Self {
+    Self {
+      name: String::new(),
+      ip: String::new(),
+      port: 0
+    }
+  }
+}
+
+#[derive(Debug)]
+struct Listeners {
+  protocol: String,
+  port: u16 // for port 0-65,535
+}
+impl Listeners {
+  pub fn new() -> Self{
+    Self {
+      protocol: String::new(),
+      port: 0
+    }
+  }
+}
+
+#[derive(Debug)]
+pub struct LoadBalancer {
+  name: String,
+  lb_type: String,
+  listeners: Vec<Listeners>,
+  backend_servers: Vec<Server>,
+  algorithm: String
+}
+impl LoadBalancer {
+  pub fn new() -> Self{
+    Self {
+      name: String::new(),
+      lb_type: String::new(),
+      backend_servers: Vec::new(),
+      listeners: Vec::new(),
+      algorithm: String::new()
+    }
+  }
+}
+
+#[derive(PartialEq, Debug)]
+enum NestedParserKeywords {
+  Name,
+  Ip,
+  Protocol,
+  Port,
+  None,
+}
+
+#[derive(PartialEq, Debug)]
+enum ParserKeyWords {
+  LoadBalancer,
+  Type,
+  Listeners,
+  Name,
+  BackendServers,
+  Algorithm,
+  None,
+  KeyValue(NestedParserKeywords, String)
+}
+
+impl ParserKeyWords {
+  fn from_str(s: &str) -> Option<ParserKeyWords> {
+
+    match s {
+      "algorithm" => Some(ParserKeyWords::Algorithm),
+      "load_balancer" => Some(ParserKeyWords::LoadBalancer),
+      "type" => Some(ParserKeyWords::Type),
+      "backend_servers" => Some(ParserKeyWords::BackendServers),
+      "listeners" => Some(ParserKeyWords::Listeners),
       _ => {
-        result.push(c)
-      },
-    }
-    index += 1;
-    prev_char = c;
-  }
+        let mut temp: &str = s;
+        temp = temp.trim_start_matches("-").trim();
 
-  if in_quotes {
-    return Err("Invalid syntax: Unclosed quote");
-}
+        let parser_keyword = match temp {
+          "name" => NestedParserKeywords::Name,
+          "protocol" => NestedParserKeywords::Protocol,
+          "port" => NestedParserKeywords::Port,
+          "ip" => NestedParserKeywords::Ip,
+          _ => NestedParserKeywords::None,
+        };
 
-  Ok(result.iter().collect())
-}
-
-fn handle_quote(result: &mut Vec<char>, in_quotes: &mut bool, chars: &mut std::iter::Peekable<std::str::Chars>, prev_char: char, index: usize, line: &str)  -> Result<(), &'static str> {
-  if *in_quotes {
-    *in_quotes = false;
-    result.push('"');
-    if let Some(next_char) = chars.peek() {
-      if !next_char.is_whitespace() {
-        return Err("Invalid Syntax: Unexpected character after closing quote: Comments must be separated from other tokens by white space characters");
-      } else {
-        let remaining = &line[index + 1..].trim();
-       if !remaining.starts_with("#") && !remaining.is_empty() {
-          return Err("Invalid Syntax: Unexpected character after closing quote");
-       }
+        Some(ParserKeyWords::KeyValue(parser_keyword,s.to_string()))
       }
     }
-  } else {
-    // "server #1""test" that is not like name:"test"
-    if !result.ends_with(&[' ']) && !result.is_empty() && !result.ends_with(&[':'])   {
-      return Err("Invalid Syntax: Unexpected opening quote");
+  }
+}
+
+fn count_indentation(lines:&Vec<String>) -> Vec<u8> {
+  let mut count_list = vec![];
+
+  for line in lines {
+    let mut count = 0;
+    for i in line.chars() {
+      if i == ' ' {
+        count = count + 1;
+      } else {
+        count_list.push(count);
+        break;
+      }
     }
-    *in_quotes = true;
-    result.push('"');
+  }
+  count_list
+}
+
+#[derive(PartialEq, Debug)]
+struct NestedObjectProperties {
+  keyword: ParserKeyWords,
+  ident: u8
+}
+
+impl NestedObjectProperties {
+  pub fn new() -> Self {
+    Self {
+      keyword : ParserKeyWords::None,
+      ident : 0
+    }
+  }
+}
+
+fn is_indented(str: &str) {
+
+  true;
+}
+
+pub(crate) fn parse_to_object(processed_buffer: &Vec<String>) -> Result<LoadBalancer, ()> {
+
+  let mut load_balancer: LoadBalancer = LoadBalancer::new();
+
+  let key_indentation: Vec<u8> = count_indentation(&processed_buffer);
+  let mut current_index = 0;
+  let mut nested_object_properties:NestedObjectProperties = NestedObjectProperties { keyword :  ParserKeyWords::None, ident: 0};
+
+  for line in processed_buffer {
+
+    let parts: Vec<&str> = line.splitn(2, ':').collect();
+    let key = parts[0].trim();
+    match ParserKeyWords::from_str(key) {
+      Some(parser_keyword) => {
+        match parser_keyword {
+          ParserKeyWords::LoadBalancer => {
+            let is_valid = key_indentation.iter().all(|&value| value >= key_indentation[current_index]);
+            if !is_valid {
+              println!("Return Error INVALID KEYWORD;")
+              // it should be less and equal to others, not more
+            }
+            nested_object_properties = NestedObjectProperties { keyword : ParserKeyWords::LoadBalancer, ident: key_indentation[current_index] };
+          }
+          ParserKeyWords::Listeners => {
+            nested_object_properties = NestedObjectProperties { keyword : ParserKeyWords::Listeners, ident: key_indentation[current_index] };
+          }
+          ParserKeyWords::BackendServers => {
+            nested_object_properties = NestedObjectProperties { keyword : ParserKeyWords::BackendServers, ident: key_indentation[current_index] };
+          }
+          ParserKeyWords::Algorithm => {
+            if load_balancer.algorithm.is_empty() {
+              load_balancer.algorithm = parts[1].trim().to_string();
+            } else {
+              println!("Map keys must be unique!!!")
+              // return error
+            }
+
+            nested_object_properties = NestedObjectProperties { keyword : ParserKeyWords::Algorithm, ident: key_indentation[current_index] };
+          }
+          ParserKeyWords::Type => {
+            if load_balancer.lb_type.is_empty() {
+              load_balancer.lb_type = parts[1].trim().to_string();
+            } else {
+              println!("Map keys must be unique!!!")
+              // return error
+            }
+            nested_object_properties = NestedObjectProperties { keyword : ParserKeyWords::Type, ident: key_indentation[current_index] };
+          }
+          ParserKeyWords::KeyValue(keyword,str) => {
+            println!("{:?}", nested_object_properties);
+                if nested_object_properties.keyword == ParserKeyWords::BackendServers && nested_object_properties.ident < key_indentation[current_index]  {
+
+                  let mut backend_server = Server::new();
+
+                  let is_create_new_object = str.trim().starts_with("-");
+
+                  match keyword {
+                    NestedParserKeywords::Name => {
+
+                      if is_create_new_object {
+                        backend_server.name = parts[1].trim().parse().unwrap();
+                        load_balancer.backend_servers.push(backend_server);
+                      } else {
+                        let len = load_balancer.backend_servers.len();
+
+                        if load_balancer.backend_servers[len-1].name.is_empty() {
+                          load_balancer.backend_servers[len-1].name = parts[1].trim().parse().unwrap();
+                        } else {
+                          println!("Map keys must be unique!!!")
+                    // return error
+                        }
+                      }
+
+                    }
+                    NestedParserKeywords::Port => {
+
+                      if is_create_new_object {
+                        backend_server.port = parts[1].trim().parse().unwrap();
+                        load_balancer.backend_servers.push(backend_server);
+                      } else {
+                        let len = load_balancer.backend_servers.len();
+
+
+                        if load_balancer.backend_servers[len-1].port == 0 {
+                          load_balancer.backend_servers[len-1].port = parts[1].trim().parse().unwrap();
+                        } else {
+                          println!("Map keys must be unique!!!")
+                    // return error
+                        }
+
+                      }
+
+                    },
+                    NestedParserKeywords::Ip => {
+
+                      if is_create_new_object {
+                        backend_server.ip = parts[1].trim().parse().unwrap();
+                        load_balancer.backend_servers.push(backend_server);
+                      } else {
+                        let len = load_balancer.backend_servers.len();
+
+
+                        if load_balancer.backend_servers[len-1].ip.is_empty() {
+                          load_balancer.backend_servers[len-1].ip = parts[1].trim().parse().unwrap();
+                        } else {
+                          println!("Map keys must be unique!!! + backend server")
+                    // return error
+                        }
+                      }
+
+                    }
+                    _ => {
+
+                    }
+                  }
+                }
+
+                 else if nested_object_properties.keyword == ParserKeyWords::Listeners && nested_object_properties.ident < key_indentation[current_index] {
+                  let mut listener_object = Listeners::new();
+
+                  let is_create_new_object = str.trim().starts_with("-");
+                  let key = str.trim_start_matches('-').trim();
+
+                  match key {
+                    "protocol" => {
+
+                      if is_create_new_object {
+                        listener_object.protocol = parts[1].trim().parse().unwrap();
+                        load_balancer.listeners.push(listener_object);
+                      } else {
+                        let len = load_balancer.listeners.len();
+
+                        if load_balancer.listeners[len-1].protocol.is_empty() {
+                          load_balancer.listeners[len-1].protocol = parts[1].trim().parse().unwrap();
+                        }
+                        else {
+                          println!("Map keys must be unique!!!")
+                          // return error
+                        }
+                      }
+
+                    }
+                    "port" => {
+
+                      if is_create_new_object {
+                        listener_object.port = parts[1].trim().parse().unwrap();
+                        load_balancer.listeners.push(listener_object);
+                      } else {
+                        let len = load_balancer.listeners.len();
+
+                        if load_balancer.listeners[len-1].port == 0 {
+                          load_balancer.listeners[len-1].port = parts[1].trim().parse().unwrap();
+                        }
+                        else {
+                          println!("Map keys must be unique!!!")
+                          // return error
+                        }
+                      }
+
+                    },
+                    _ => {
+
+                    }
+                  }
+                } else if keyword == NestedParserKeywords::Name {
+                  if load_balancer.name.is_empty() {
+                    load_balancer.name = parts[1].trim().to_string();
+                  }  else {
+                    println!("Map keys must be unique!!!")
+                    // return error
+                  }
+                  nested_object_properties.keyword = ParserKeyWords::Name;
+                  nested_object_properties.ident = key_indentation[current_index];
+                }
+          }
+          _ => {
+            println!("None of the keywords matched, Return Error: {:?}",parser_keyword);
+          }
+        }
+      }
+      None => {
+        println!("Return Error: ");
+      }
+    }
+
+    current_index = current_index + 1;
   }
 
-  Ok(())
+  Ok(load_balancer)
 }
-
-fn handle_colon(result: &mut Vec<char>, in_quotes: &mut bool, count_colon: &mut u8) -> Result<(), &'static str> {
-  if *in_quotes {
-    result.push(':');
-  } else {
-    *count_colon += 1;
-    if *count_colon > 1 {
-      return Err("Invalid Syntax: colon present multiple times on the single row");
-    }
-    result.push(':');
-  }
-  Ok(())
-}
-
-fn handle_comment(in_quotes: bool, prev_char: char) -> bool {
-  if !in_quotes && prev_char.is_whitespace() { // if not in quotes then, remove others
-      false
-    } else {
-      true
-    }
-  // !(in_quotes || prev_char.is_whitespace())
-}
-
-pub(crate) fn parse_to_object(line: &str) {
-
-}
-
 
 #[cfg(test)]
 mod tests {
   use super::*;
 
   #[test]
-  fn test_preprocess_by_line() {
-    let line = "load_balancer: ";
-    let result = preprocess_by_line(line);
-    assert_eq!(result.unwrap(), "load_balancer: ");
-
-    let line = "name: my-load-balancer # name of the load balancer";
-    let result = preprocess_by_line(line);
-    assert_eq!(result.unwrap(), "name: my-load-balancer ");
-
-    let line = r#"name: "test" another_name: "value""#;
-    let result = preprocess_by_line(line);
-    assert!(result.is_err());
-
-    let line = r#"name: "test with a #" inside""#;
-    let result = preprocess_by_line(line);
-    assert!(result.is_err());
-
-    let line = r#"name: inside""#;
-    let result = preprocess_by_line(line);
-    assert!(result.is_err());
-
-    let line = r#"name: "inside"  ":test" "#;
-    let result = preprocess_by_line(line);
-    assert!(result.is_err());
-
-    let line = r#"name: "inside" # testing "#;
-    let result = preprocess_by_line(line);
-    assert_eq!(result.unwrap(), "name: \"inside\" ");
+  fn test_parse_to_object() {
 
   }
 }
+
+// check with identation for - nested etc

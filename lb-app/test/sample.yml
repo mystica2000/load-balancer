@@ -1,15 +1,17 @@
 load_balancer:
-  name: my-load-balancer # name of the load balancer
   type: application
-  listeners: # Defines the protocols and ports the load balancer listens on
-    - protocol: HTTP
-      port: 80
-  backend_servers: # List of servers that the load balancer distributes traffic to
-    - name: "server #1:test" #hello world
-      ############################# ###
-      ip: 127.0.0.1#2
-      port: 8080
-    - name: server2
-      ip: 127.0.0.1
-      port: 8081
-  algorithm: round_robin # The method used to distribute traffic (round robin in this example)
+# name: my-load-balancer # name of the load balancee
+algorithm: round_robin # The method used to distribute traffic (round robin in this example)
+listeners: # Defines the protocols and ports the load balancer listens on
+  - protocol: HTTP
+    port: 80
+backend_servers: # List of servers that the load balancer distributes traffic to
+  - name: "server #1:test" #hello world
+    ############################# ###
+    ip: 127.0.0.1#2
+    port: 8080
+  - port: 8081
+    ip: 127.0.0.1
+    name: server2
+name: my-load-balancer # name of the load balancer
+type: application

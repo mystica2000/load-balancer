@@ -1,31 +1,9 @@
 use std::{fs::File, io::{self, BufRead}};
+
+use parser::LoadBalancer;
+mod preprocess;
 mod parser;
 
-#[derive(Debug)]
-struct Server {
-  name: String,
-  ip: String,
-  port: u16 // for port 0-65,535
-}
-
-#[derive(Debug)]
-pub struct LoadBalancer {
-  name: String,
-  lb_type: String,
-  backend_servers: Vec<Server>,
-  algorithm: String
-}
-
-impl LoadBalancer {
-  fn new() -> Self{
-    Self {
-      name: String::new(),
-      lb_type: String::new(),
-      backend_servers: Vec::new(),
-      algorithm: String::new()
-    }
-  }
-}
 
 // enum LoadBalancerType {
 //   Application = "application",
@@ -41,23 +19,26 @@ impl LoadBalancer {
 
 pub fn yml_parser(file: File) -> Result<LoadBalancer, io::Error> {
 
-  let load_balancer = LoadBalancer::new();
 
   let reader = io::BufReader::new(file);
+  let mut processed_buffer : Vec<String>= Vec::new();
 
   for line in reader.lines() {
 
     match line {
       Ok(mut str) => {
-        str = str.trim().to_string();
+        let initial_check = str.trim().to_string();
 
-        if str.is_empty() || str.starts_with("#") {
+        if initial_check.is_empty() || initial_check.starts_with("#") {
           continue;
         }
 
-        let processed_line = parser::preprocess_by_line(&str)
+        str = str.trim_end().to_string();
+        let mut processed_line = preprocess::preprocess_by_line(&str)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
+        // to remove the end of the line space
+        processed_line = processed_line.trim_end().to_string();
         if processed_line.is_empty() {
           continue;
         }
@@ -66,6 +47,7 @@ pub fn yml_parser(file: File) -> Result<LoadBalancer, io::Error> {
           io::Error::new(io::ErrorKind::InvalidData, "Invalid Syntax: Unexpected : ");
         }
 
+        processed_buffer.push(processed_line);
       }
       Err(e) => {
         eprintln!("Error Reading Line: {}",e);
@@ -74,7 +56,15 @@ pub fn yml_parser(file: File) -> Result<LoadBalancer, io::Error> {
     }
   }
 
-  Ok(load_balancer)
+  if !processed_buffer.is_empty() {
+    match parser::parse_to_object(&processed_buffer) {
+      Ok(res) => Ok(res),
+      Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, "No YML Content to process")),
+    }
+  } else {
+    Err(io::Error::new(io::ErrorKind::InvalidData, "No YML Content to process"))
+  }
+
 }
 
 // #[cfg(test)]
