@@ -2,3 +2,7 @@
 members = [
   "lb-core","yml-parser","lb-app"
 ]
+
+
+[workspace.dependencies]
+tokio = "1"

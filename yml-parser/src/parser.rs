@@ -1,11 +1,12 @@
 
 #[derive(Debug)]
-struct Server {
-  name: String,
-  ip: String,
-  port: u16 // for port 0-65,535
+pub struct ServerConfig {
+  pub name: String,
+  pub ip: String,
+  pub port: u16 // for port 0-65,535
 }
-impl Server {
+
+impl ServerConfig {
   pub fn new() -> Self {
     Self {
       name: String::new(),
@@ -16,11 +17,11 @@ impl Server {
 }
 
 #[derive(Debug)]
-struct Listeners {
-  protocol: String,
-  port: u16 // for port 0-65,535
+pub struct Listener {
+  pub protocol: String,
+  pub port: u16 // for port 0-65,535
 }
-impl Listeners {
+impl Listener {
   pub fn new() -> Self{
     Self {
       protocol: String::new(),
@@ -31,11 +32,11 @@ impl Listeners {
 
 #[derive(Debug)]
 pub struct LoadBalancerConfig {
-  name: String,
-  lb_type: String,
-  listeners: Vec<Listeners>,
-  backend_servers: Vec<Server>,
-  algorithm: String
+  pub name: String,
+  pub lb_type: String,
+  pub listener: Listener,
+  pub backend_servers: Vec<ServerConfig>,
+  pub algorithm: String
 }
 impl LoadBalancerConfig {
   pub fn new() -> Self{
@@ -43,7 +44,7 @@ impl LoadBalancerConfig {
       name: String::new(),
       lb_type: String::new(),
       backend_servers: Vec::new(),
-      listeners: Vec::new(),
+      listener: Listener::new(),
       algorithm: String::new()
     }
   }
@@ -62,7 +63,7 @@ enum NestedParserKeywords {
 enum ParserKeyWords {
   LoadBalancer,
   Type,
-  Listeners,
+  Listener,
   Name,
   BackendServers,
   Algorithm,
@@ -78,7 +79,7 @@ impl ParserKeyWords {
       "load_balancer" => Some(ParserKeyWords::LoadBalancer),
       "type" => Some(ParserKeyWords::Type),
       "backend_servers" => Some(ParserKeyWords::BackendServers),
-      "listeners" => Some(ParserKeyWords::Listeners),
+      "listener" => Some(ParserKeyWords::Listener),
       _ => {
         let mut temp: &str = s;
         temp = temp.trim_start_matches("-").trim();
@@ -120,20 +121,6 @@ struct NestedObjectProperties {
   ident: u8
 }
 
-impl NestedObjectProperties {
-  pub fn new() -> Self {
-    Self {
-      keyword : ParserKeyWords::None,
-      ident : 0
-    }
-  }
-}
-
-fn is_indented(str: &str) {
-
-  true;
-}
-
 pub(crate) fn parse_to_object(processed_buffer: &Vec<String>) -> Result<LoadBalancerConfig, ()> {
 
   let mut load_balancer: LoadBalancerConfig = LoadBalancerConfig::new();
@@ -157,8 +144,8 @@ pub(crate) fn parse_to_object(processed_buffer: &Vec<String>) -> Result<LoadBala
             }
             nested_object_properties = NestedObjectProperties { keyword : ParserKeyWords::LoadBalancer, ident: key_indentation[current_index] };
           }
-          ParserKeyWords::Listeners => {
-            nested_object_properties = NestedObjectProperties { keyword : ParserKeyWords::Listeners, ident: key_indentation[current_index] };
+          ParserKeyWords::Listener => {
+            nested_object_properties = NestedObjectProperties { keyword : ParserKeyWords::Listener, ident: key_indentation[current_index] };
           }
           ParserKeyWords::BackendServers => {
             nested_object_properties = NestedObjectProperties { keyword : ParserKeyWords::BackendServers, ident: key_indentation[current_index] };
@@ -186,7 +173,7 @@ pub(crate) fn parse_to_object(processed_buffer: &Vec<String>) -> Result<LoadBala
             println!("{:?}", nested_object_properties);
                 if nested_object_properties.keyword == ParserKeyWords::BackendServers && nested_object_properties.ident < key_indentation[current_index]  {
 
-                  let mut backend_server = Server::new();
+                  let mut backend_server = ServerConfig::new();
 
                   let is_create_new_object = str.trim().starts_with("-");
 
@@ -251,46 +238,27 @@ pub(crate) fn parse_to_object(processed_buffer: &Vec<String>) -> Result<LoadBala
                   }
                 }
 
-                 else if nested_object_properties.keyword == ParserKeyWords::Listeners && nested_object_properties.ident < key_indentation[current_index] {
-                  let mut listener_object = Listeners::new();
+                 else if nested_object_properties.keyword == ParserKeyWords::Listener && nested_object_properties.ident < key_indentation[current_index] {
 
-                  let is_create_new_object = str.trim().starts_with("-");
                   let key = str.trim_start_matches('-').trim();
 
                   match key {
                     "protocol" => {
 
-                      if is_create_new_object {
-                        listener_object.protocol = parts[1].trim().parse().unwrap();
-                        load_balancer.listeners.push(listener_object);
+                      if load_balancer.listener.protocol.is_empty() {
+                        load_balancer.listener.protocol = parts[1].trim().parse().unwrap();
                       } else {
-                        let len = load_balancer.listeners.len();
-
-                        if load_balancer.listeners[len-1].protocol.is_empty() {
-                          load_balancer.listeners[len-1].protocol = parts[1].trim().parse().unwrap();
-                        }
-                        else {
                           println!("Map keys must be unique!!!")
                           // return error
-                        }
                       }
 
                     }
                     "port" => {
-
-                      if is_create_new_object {
-                        listener_object.port = parts[1].trim().parse().unwrap();
-                        load_balancer.listeners.push(listener_object);
+                      if load_balancer.listener.port == 0 {
+                        load_balancer.listener.port = parts[1].trim().parse().unwrap();
                       } else {
-                        let len = load_balancer.listeners.len();
-
-                        if load_balancer.listeners[len-1].port == 0 {
-                          load_balancer.listeners[len-1].port = parts[1].trim().parse().unwrap();
-                        }
-                        else {
                           println!("Map keys must be unique!!!")
                           // return error
-                        }
                       }
 
                     },

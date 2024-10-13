@@ -1,11 +1,10 @@
-use std::{env, fs::{File}, io};
+use std::{env, fs::File};
 
 use lb_core::initialize_load_balancer;
-use yml_parser::{yml_parser};
+use yml_parser::yml_parser;
 
-fn main() -> io::Result<()> {
-    println!("Hello, world!");
-
+#[tokio::main()]
+async fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
     match env::current_dir() {
       Ok(path) => println!("PWD {:?}",path),
@@ -16,17 +15,13 @@ fn main() -> io::Result<()> {
       Ok(file) => {
 
        let load_balancer_config = yml_parser(file).map_err(|e| e);
-       println!("{:?}",load_balancer_config);
 
-       initialize_load_balancer(load_balancer_config.unwrap());
-       Ok(())
+       let _ = initialize_load_balancer(load_balancer_config.unwrap()).await;
       },
       Err(e) => {
         eprintln!("Error Opening the file: {}",e);
-        Err(e)
       }
     }
 
-
-
+    Ok(())
 }

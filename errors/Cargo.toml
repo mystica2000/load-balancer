@@ -1,11 +1,8 @@
 [package]
-name = "lb-app"
+name = "errors"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lb-core = { path = "../lb-core" }
-yml-parser = { path = "../yml-parser"}
-tokio = { workspace = true, features = ["full"] }

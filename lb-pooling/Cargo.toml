@@ -1,12 +1,10 @@
 [package]
-name = "lb-core"
+name = "lb-pooling"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-yml-parser = { path = "../yml-parser"}
 tokio = { workspace = true, features = ["full"] }
 errors = { path = "../errors"}
-lb-pooling = { path = "../lb-pooling"}
