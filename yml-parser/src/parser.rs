@@ -121,10 +121,14 @@ struct NestedObjectProperties {
   ident: u8
 }
 
+/**
+ * processed_buffer contains vector of string which is parsed line by line, now map it to object
+ */
 pub(crate) fn parse_to_object(processed_buffer: &Vec<String>) -> Result<LoadBalancerConfig, ()> {
 
   let mut load_balancer: LoadBalancerConfig = LoadBalancerConfig::new();
 
+  // for every line, count the indentation
   let key_indentation: Vec<u8> = count_indentation(&processed_buffer);
   let mut current_index = 0;
   let mut nested_object_properties:NestedObjectProperties = NestedObjectProperties { keyword :  ParserKeyWords::None, ident: 0};

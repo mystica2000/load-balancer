@@ -35,8 +35,6 @@ pub async fn initialize_load_balancer(lb_config: LoadBalancerConfig) -> Result<(
 
 
       tcp_connector.accept(tcp_listener).await;
-
-
     }
     _ => {
       println!("Error");

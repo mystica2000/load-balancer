@@ -44,7 +44,6 @@ impl TcpConnectionPooling {
 
     let mut connections: tokio::sync::RwLockWriteGuard<Vec<PooledConnection>> = self.connections.write().await;
 
-
     for i in 0..self.initial_pool_size {
       println!("CREATING CONNECTION!! TO BACKEND :)");
       let connection = self.create_new_connection(i).await;

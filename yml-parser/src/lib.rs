@@ -6,16 +6,17 @@ pub mod parser;
 
 pub fn yml_parser(file: File) -> Result<LoadBalancerConfig, io::Error> {
 
-
   let reader = io::BufReader::new(file);
   let mut processed_buffer : Vec<String>= Vec::new();
 
+  // line-by-line
   for line in reader.lines() {
 
     match line {
       Ok(mut str) => {
         let initial_check = str.trim().to_string();
 
+        // empty or comment, then ignore the current line
         if initial_check.is_empty() || initial_check.starts_with("#") {
           continue;
         }
@@ -44,8 +45,9 @@ pub fn yml_parser(file: File) -> Result<LoadBalancerConfig, io::Error> {
   }
 
   if !processed_buffer.is_empty() {
+    // convert and parse to object
     match parser::parse_to_object(&processed_buffer) {
-      Ok(res) => Ok(res),
+      Ok(res) => Ok(res), // if parsed, return result
       Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, "No YML Content to process")),
     }
   } else {

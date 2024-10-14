@@ -26,11 +26,13 @@ pub(crate) fn preprocess_by_line(line: &str) -> Result<String, &'static str> {
   let mut count_colon = 0;
   let mut index = 0;
 
+  // token by token
   while let Some(c) = chars.next() {
     match c {
       '"' => handle_quote(&mut result, &mut in_quotes, &mut chars, prev_char, index, &line)?,
       ':' => handle_colon(&mut result, &mut in_quotes, &mut count_colon)?,
       '#' => {
+        // if it is comment or value inside it!
         if !handle_comment(in_quotes, prev_char) {
           break;
         }
@@ -53,6 +55,7 @@ pub(crate) fn preprocess_by_line(line: &str) -> Result<String, &'static str> {
 
 fn handle_quote(result: &mut Vec<char>, in_quotes: &mut bool, chars: &mut std::iter::Peekable<std::str::Chars>, prev_char: char, index: usize, line: &str)  -> Result<(), &'static str> {
   if *in_quotes {
+    // closing quotes
     *in_quotes = false;
     result.push('"');
     if let Some(next_char) = chars.peek() {
@@ -67,6 +70,7 @@ fn handle_quote(result: &mut Vec<char>, in_quotes: &mut bool, chars: &mut std::i
     }
   } else {
     // "server #1""test" that is not like name:"test"
+    // name: "server #1:test" is valid, "server #1""test" is not
     if !result.ends_with(&[' ']) && !result.is_empty() && !result.ends_with(&[':'])   {
       return Err("Invalid Syntax: Unexpected opening quote");
     }
@@ -78,10 +82,12 @@ fn handle_quote(result: &mut Vec<char>, in_quotes: &mut bool, chars: &mut std::i
 }
 
 fn handle_colon(result: &mut Vec<char>, in_quotes: &mut bool, count_colon: &mut u8) -> Result<(), &'static str> {
+  // if it is inside quotes then (port, address etc);
   if *in_quotes {
     result.push(':');
   } else {
     *count_colon += 1;
+    // colon should not to be more than >1 if it is not inside "" (quotes)
     if *count_colon > 1 {
       return Err("Invalid Syntax: colon present multiple times on the single row");
     }
