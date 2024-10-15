@@ -1,13 +1,14 @@
 use std::{io, net::{Ipv4Addr, SocketAddrV4}, sync::Arc};
 
 use errors::{CustomError, Error};
-use lb_pooling::pooling::{self, tcp::TcpConnectionPooling};
+use lb_pooling::pooling::{self, tcp::{Server, TcpConnectionPooling}};
 use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::{TcpListener, TcpStream}, select, sync::{mpsc, Mutex}, try_join};
 use yml_parser::parser::ServerConfig;
 
 
+
 pub struct TcpConnector {
-  pooling: Vec<TcpConnectionPooling>
+  pooling: Vec<TcpConnectionPooling>,
 }
 
 impl TcpConnector {
@@ -22,7 +23,7 @@ impl TcpConnector {
     }
 
     Ok(TcpConnector {
-      pooling: temp
+      pooling: temp,
     })
   }
 
@@ -33,7 +34,9 @@ impl TcpConnector {
   }
 
   pub async fn initialize_algorithm(&self, algorithm: String) {
+    if algorithm == "round-robin" {
 
+    }
   }
 
   pub async fn accept(self,tcp_listener: TcpListener) -> Result<(), Box<dyn std::error::Error>> {
@@ -42,25 +45,38 @@ impl TcpConnector {
     let pooling = Arc::new(self.pooling);
     tokio::spawn(async move {
         while let Some(stream) = recv.recv().await {
-          println!("what?!");
+          println!("New connection received!");
           let count_clone = Arc::clone(&count);
-           let self_clone = Arc::clone(&pooling);
+          let pooling_clone = Arc::clone(&pooling);
 
           tokio::spawn(async move {
-          println!("NEW CONNECTION!!!");
-          let mut count_lock = count_clone.lock().await;
-          *count_lock += 1;
-          let current_count = *count_lock;
-          drop(count_lock); // Explicitly drop the lock as soon as possible
+            println!("Processing new connection");
+            let mut count_lock = count_clone.lock().await;
+            *count_lock += 1;
+            let current_count = *count_lock;
+            drop(count_lock); // Explicitly drop the lock as soon as possible
 
-           // Choose a pooling instance (for example, round-robin)
-           let pooling_index = current_count % self_clone.len();
-           let mut pooling_instance = &self_clone[pooling_index];
+            // TODO
+          //   let pooling_instance = if let Some(rr) = round_robin_clone.as_ref() {
+          //     rr.get_next_backend()
+          // } else {
+          //     None
+          // };
 
-        if let Err(e) = handle_connection(pooling_instance, stream, current_count).await {
-          eprintln!("Failed Connection Result: {}",e);
-        }
-      });
+
+          //   if let Some(pooling_instance) = pooling_instance {
+          //     if let Err(e) = handle_connection(pooling_instance, stream, current_count).await {
+          //       eprintln!("Failed Connection Result: {}", e);
+          //     }
+          //   }
+          //   else {
+          //   eprintln!("No pooling instances available");
+          //   }
+          });
+
+          //  // Choose a pooling instance (for example, round-robin)
+          //  let pooling_index = current_count % self_clone.len();
+          //  let mut pooling_instance = &self_clone[pooling_index];
       }
     });
 

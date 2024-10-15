@@ -17,9 +17,10 @@ impl PooledConnection {
 }
 
 pub struct Server {
-  ip_addr: SocketAddrV4,
-  name: String
+  pub ip_addr: SocketAddrV4,
+  pub name: String
 }
+
 
 pub struct TcpConnectionPooling {
   initial_pool_size: u8,

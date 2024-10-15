@@ -23,7 +23,7 @@ pub async fn initialize_load_balancer(lb_config: LoadBalancerConfig) -> Result<(
       // setting up connector
       let tcp_connector = TcpConnector::add_servers(lb_config.backend_servers).map_err(|e| { eprintln!("{}",e); e })?;
       tcp_connector.initialize_pooling_layer().await;
-      //tcp_connector.initialize_algorithm(lb_config.algorithm);
+      tcp_connector.initialize_algorithm(lb_config.algorithm);
 
       // setting up listener
       let tcp_listener_node = TcpListenerNode::new(lb_config.listener.port);
